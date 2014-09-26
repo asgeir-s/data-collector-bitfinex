@@ -30,7 +30,7 @@ class DBWriter(inSession: Session, addTickFromDb: Boolean) {
     "bitfinex_btc_usd_30min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_30min")),
     "bitfinex_btc_usd_1hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_1hour")),
     "bitfinex_btc_usd_2hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_2hour")),
-    "bitfinex_btc_usd_5hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_5hour")),
+    "bitfinex_btc_usd_6hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_6hour")),
     "bitfinex_btc_usd_12hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_12hour")),
     "bitfinex_btc_usd_day" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_day"))
   )
@@ -53,7 +53,7 @@ class DBWriter(inSession: Session, addTickFromDb: Boolean) {
       "bitfinex_btc_usd_30min" -> NextRow(1800, tickDataPoint),
       "bitfinex_btc_usd_1hour" -> NextRow(3600, tickDataPoint),
       "bitfinex_btc_usd_2hour" -> NextRow(7200, tickDataPoint),
-      "bitfinex_btc_usd_5hour" -> NextRow(18000, tickDataPoint),
+      "bitfinex_btc_usd_6hour" -> NextRow(21600, tickDataPoint),
       "bitfinex_btc_usd_12hour" -> NextRow(43200, tickDataPoint),
       "bitfinex_btc_usd_day" -> NextRow(86400, tickDataPoint)
     )
