@@ -21,8 +21,9 @@ object Boot extends App {
 
   val dbSession = databaseFactory.createSession()
 
+
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - Start --------------------------")
-  new BitcoinChartsHistoryToDB(false, false, false, "/Users/asgeir/Dropbox/Master/System/BitfinexCollector/download/bitfinexUSD1411569222028.csv", dbSession)
+  new BitcoinChartsHistoryToDB(true, true, true, "", dbSession)
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - end ----------------------------")
 
   println("-------------------------- STEP2 - BfxDataHistoryToDB - Start --------------------------------")
