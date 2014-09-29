@@ -91,7 +91,8 @@ class DBWriter(inSession: Session, addTickFromDb: Boolean) {
         table += row.thisRow
         if (isLive) {
           // notify trading systems that a new dataPoint is added with id
-          Q.updateNA("NOTIFY " + x._1.toString + " , '" + table.list.last.id + "'").execute
+          println("NOTIFY " + x._1.toString + " , '" + table.list.last.id.get + "'")
+          Q.updateNA("NOTIFY " + x._1.toString + " , '" + table.list.last.id.get + "'").execute
         }
         row.updateNoTickNextRow()
       }
