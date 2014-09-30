@@ -11,7 +11,7 @@ import scala.slick.jdbc.{StaticQuery => Q}
  * Get "new" trades from Bitcoincharts.
  * The trades retrieved are delayed by approx. 15 minutes
  */
-class BfxDataTradesToDB(sessionIn: Session) {
+class BFXdataTradesToDB(sessionIn: Session) {
 
   implicit var session: Session = sessionIn
   val tickTable = TableQuery[TickTable]

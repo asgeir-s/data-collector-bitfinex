@@ -1,6 +1,8 @@
 package com.cctrader.datacollector.bitfinex
 
+import akka.actor.{Props, ActorSystem}
 import com.typesafe.config.ConfigFactory
+import scala.concurrent.duration._
 
 import scala.slick.jdbc.JdbcBackend._
 
@@ -27,7 +29,7 @@ object Boot extends App {
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - end ----------------------------")
 
   println("-------------------------- STEP2 - BfxDataHistoryToDB - Start --------------------------------")
-  new BfxDataTradesToDB(dbSession)
+  new BFXdataTradesToDB(dbSession)
   println("-------------------------- STEP2 - BfxDataHistoryToDB - end ----------------------------------")
 
   println("-------------------------- STEP3 - DBWriter - Start ------------------------------------------")
@@ -35,7 +37,11 @@ object Boot extends App {
   println("-------------------------- STEP3 - DBWriter - Initialization done ----------------------------")
 
   println("-------------------------- STEP4 - BitfinexLive - Start --------------------------------------")
-  new BitfinexTradesToDB(dbWriter)
+  implicit val system = ActorSystem("actor-system")
+  val liveActor = system.actorOf(BitfinexTradesToDBActor.props(dbWriter))
+  //Use the system's dispatcher as ExecutionContext
+  import system.dispatcher
+  system.scheduler.schedule(15 seconds, 15 seconds, liveActor, "GET TICKS")
   println("-------------------------- STEP4 - BitfinexLive - end ----------------------------------------")
 
 }
