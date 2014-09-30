@@ -1,7 +1,5 @@
 package com.cctrader.datacollector.bitfinex
 
-import java.util.Date
-
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.meta.MTable
 import scala.slick.jdbc.{StaticQuery => Q}
@@ -21,6 +19,8 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
   val iterator = list.iterator
   var tickDataPoint = iterator.next()
 
+  var minTimestamp: Int = 0
+
   val tableMap = Map(
     //"bitfinex_btc_usd_1min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_1min")),
     //"bitfinex_btc_usd_2min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_2min")),
@@ -34,43 +34,63 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
     "bitfinex_btc_usd_12hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_12hour")),
     "bitfinex_btc_usd_day" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_day"))
   )
-  
+
+  def lastRow(table: TableQuery[InstrumentTable]): DataPoint = {
+    val length = table.length.run.toLong
+    val lastRow = table.filter(_.id === length).take(1)
+    val value = lastRow.firstOption
+    val lastValue = value.get
+    lastValue.copy()
+  }
+
+  def lastTickBefore(timestamp: Int) = {
+    val allProcessedRows = tickTable.filter(x => x.timestamp <= timestamp)
+    val length = allProcessedRows.length.run.toLong
+    val lastProcessedRow = allProcessedRows.filter(_.id === length).take(1)
+    val value = lastProcessedRow.firstOption
+    value.get
+  }
+
   val tableRows = {
     if (!resetGranularitys) {
-      val lastRowInSmallestGranularity = {
-        // SET THIS TO SMALLEST GRANULARITY TABLE
-        val smallestGranularityTable = tableMap.get("bitfinex_btc_usd_1hour").get
-        val length = smallestGranularityTable.length.run.toLong
-        val lastRow = smallestGranularityTable.filter(_.id === length).take(1)
-        val value = lastRow.firstOption
-        value.get
-      }
+      val lastTimestamp_1hour = lastRow(tableMap.get("bitfinex_btc_usd_1hour").get).timestamp
+      val lastTimestamp_2hour = lastRow(tableMap.get("bitfinex_btc_usd_2hour").get).timestamp
+      val lastTimestamp_6hour = lastRow(tableMap.get("bitfinex_btc_usd_6hour").get).timestamp
+      val lastTimestamp_12hour = lastRow(tableMap.get("bitfinex_btc_usd_12hour").get).timestamp
+      val lastTimestamp_day = lastRow(tableMap.get("bitfinex_btc_usd_day").get).timestamp
 
-      val lastProcessedTimestamp = lastRowInSmallestGranularity.timestamp
+      minTimestamp = Math.min(Math.min(lastTimestamp_1hour, lastTimestamp_2hour), Math.min(lastTimestamp_6hour, Math.min(lastTimestamp_day, lastTimestamp_12hour)))
 
-      tickDataPoint = {
-        val allProcessedRows = tickTable.filter(x => x.timestamp <= lastProcessedTimestamp)
-        val length = allProcessedRows.length.run.toLong
-        val lastProcessedRow = allProcessedRows.filter(_.id === length).take(1)
-        val value = lastProcessedRow.firstOption
-        value.get
-      }
       println("Last processed tick data point was: TICK: id:" + tickDataPoint.id + ", sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
-
+      Map(
+        //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
+        //"bitfinex_btc_usd_2min" -> NextRow(120, tickDataPoint),
+        //"bitfinex_btc_usd_5min" -> NextRow(300, tickDataPoint),
+        //"bitfinex_btc_usd_10min" -> NextRow(600, tickDataPoint),
+        //"bitfinex_btc_usd_15min" -> NextRow(900, tickDataPoint),
+        //"bitfinex_btc_usd_30min" -> NextRow(1800, tickDataPoint),
+        "bitfinex_btc_usd_1hour" -> NextRow(3600, lastTickBefore(lastTimestamp_1hour)),
+        "bitfinex_btc_usd_2hour" -> NextRow(7200, lastTickBefore(lastTimestamp_2hour)),
+        "bitfinex_btc_usd_6hour" -> NextRow(21600, lastTickBefore(lastTimestamp_6hour)),
+        "bitfinex_btc_usd_12hour" -> NextRow(43200, lastTickBefore(lastTimestamp_12hour)),
+        "bitfinex_btc_usd_day" -> NextRow(86400, lastTickBefore(lastTimestamp_day))
+      )
     }
-    Map(
-      //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
-      //"bitfinex_btc_usd_2min" -> NextRow(120, tickDataPoint),
-      //"bitfinex_btc_usd_5min" -> NextRow(300, tickDataPoint),
-      //"bitfinex_btc_usd_10min" -> NextRow(600, tickDataPoint),
-      //"bitfinex_btc_usd_15min" -> NextRow(900, tickDataPoint),
-      //"bitfinex_btc_usd_30min" -> NextRow(1800, tickDataPoint),
-      "bitfinex_btc_usd_1hour" -> NextRow(3600, tickDataPoint),
-      "bitfinex_btc_usd_2hour" -> NextRow(7200, tickDataPoint),
-      "bitfinex_btc_usd_6hour" -> NextRow(21600, tickDataPoint),
-      "bitfinex_btc_usd_12hour" -> NextRow(43200, tickDataPoint),
-      "bitfinex_btc_usd_day" -> NextRow(86400, tickDataPoint)
-    )
+    else {
+      Map(
+        //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
+        //"bitfinex_btc_usd_2min" -> NextRow(120, tickDataPoint),
+        //"bitfinex_btc_usd_5min" -> NextRow(300, tickDataPoint),
+        //"bitfinex_btc_usd_10min" -> NextRow(600, tickDataPoint),
+        //"bitfinex_btc_usd_15min" -> NextRow(900, tickDataPoint),
+        //"bitfinex_btc_usd_30min" -> NextRow(1800, tickDataPoint),
+        "bitfinex_btc_usd_1hour" -> NextRow(3600, tickDataPoint),
+        "bitfinex_btc_usd_2hour" -> NextRow(7200, tickDataPoint),
+        "bitfinex_btc_usd_6hour" -> NextRow(21600, tickDataPoint),
+        "bitfinex_btc_usd_12hour" -> NextRow(43200, tickDataPoint),
+        "bitfinex_btc_usd_day" -> NextRow(86400, tickDataPoint)
+      )
+    }
   }
 
   if (resetGranularitys) {
@@ -89,7 +109,7 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
     }
   }
   else {
-    val allNewRows = tickTable.filter(x => x.timestamp >= tickDataPoint.timestamp)
+    val allNewRows = tickTable.filter(x => x.timestamp >= minTimestamp)
     val allNewRowsList: List[TickDataPoint] = allNewRows.list
     val allNewRowsIterator = allNewRowsList.iterator
 
@@ -111,16 +131,18 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
       val granularity = x._1
       val table = x._2
       val row = tableRows(granularity)
-      while (row.endTimestamp < tickDataPoint.timestamp) {
-        table += row.thisRow
-        if (isLive) {
-          // notify trading systems that a new dataPoint is added with id
-          println("NOTIFY " + x._1.toString + " , '" + table.list.last.id.get + "'")
-          Q.updateNA("NOTIFY " + x._1.toString + " , '" + table.list.last.id.get + "'").execute
+      if(row.lastTimestamp <= tickDataPoint.timestamp) {
+        while (row.endTimestamp < tickDataPoint.timestamp) {
+          table += row.thisRow
+          if (isLive) {
+            // notify trading systems that a new dataPoint is added with id
+            println("NOTIFY " + x._1.toString + " , '" + table.list.last.id.get + "'")
+            Q.updateNA("NOTIFY " + x._1.toString + " , '" + table.list.last.id.get + "'").execute
+          }
+          row.updateNoTickNextRow()
         }
-        row.updateNoTickNextRow()
+        row.addTick(tickDataPoint)
       }
-      row.addTick(tickDataPoint)
     })
   }
 
@@ -150,7 +172,8 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
     var low = firstTick.price
     var volume = firstTick.amount
     var close = firstTick.price
-    var endTimestamp = firstTick.timestamp + intervalSec
+    var lastTimestamp = firstTick.timestamp
+    var endTimestamp = lastTimestamp + intervalSec
     var lastSourceId = firstTick.sourceId
 
     def reinitialize(tick: TickDataPoint) {
