@@ -46,7 +46,7 @@ class BitfinexTradesToDB(dbWriter: DBWriter) {
       case e: IOException => {e.printStackTrace(); e.toString()}
       case e: java.net.MalformedURLException => {e.printStackTrace(); e.toString()}
       case e: Exception => {e.printStackTrace(); e.toString()}
-      case _ => println("Another exception")
+      case _: Throwable  => println("Another exception")
     }
 
     println("BitfinexTradesToDB: lastTimestamp:" + lastTimestamp + ". Waiting for 15 sec.")
@@ -56,7 +56,7 @@ class BitfinexTradesToDB(dbWriter: DBWriter) {
     catch {
       case e: java.lang.InterruptedException => {e.printStackTrace(); e.toString()}
       case e: Exception => {e.printStackTrace(); e.toString()}
-      case _ => println("Another exception")
+      case _: Throwable => println("Another exception")
     }
   }
 
