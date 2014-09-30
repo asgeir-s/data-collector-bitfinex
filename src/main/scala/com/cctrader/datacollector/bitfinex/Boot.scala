@@ -23,7 +23,7 @@ object Boot extends App {
 
 
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - Start --------------------------")
-  new BitcoinChartsHistoryToDB(true, true, true, "", dbSession)
+  new BitcoinChartsHistoryToDB(false, false, false, "", dbSession)
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - end ----------------------------")
 
   println("-------------------------- STEP2 - BfxDataHistoryToDB - Start --------------------------------")
@@ -31,7 +31,7 @@ object Boot extends App {
   println("-------------------------- STEP2 - BfxDataHistoryToDB - end ----------------------------------")
 
   println("-------------------------- STEP3 - DBWriter - Start ------------------------------------------")
-  val dbWriter = new DBWriter(dbSession, true)
+  val dbWriter = new DBWriter(dbSession, false)
   println("-------------------------- STEP3 - DBWriter - Initialization done ----------------------------")
 
   println("-------------------------- STEP4 - BitfinexLive - Start --------------------------------------")

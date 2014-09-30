@@ -9,7 +9,7 @@ import scala.slick.jdbc.{StaticQuery => Q}
 /**
  * Writes ticks to the database and create (and write to the database) granularity's.
  */
-class DBWriter(inSession: Session, addTickFromDb: Boolean) {
+class DBWriter(inSession: Session, resetGranularitys: Boolean) {
 
   implicit val session = inSession
 
@@ -22,35 +22,49 @@ class DBWriter(inSession: Session, addTickFromDb: Boolean) {
   var tickDataPoint = iterator.next()
 
   val tableMap = Map(
-    "bitfinex_btc_usd_1min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_1min")),
-    "bitfinex_btc_usd_2min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_2min")),
-    "bitfinex_btc_usd_5min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_5min")),
-    "bitfinex_btc_usd_10min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_10min")),
-    "bitfinex_btc_usd_15min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_15min")),
-    "bitfinex_btc_usd_30min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_30min")),
+    //"bitfinex_btc_usd_1min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_1min")),
+    //"bitfinex_btc_usd_2min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_2min")),
+    //"bitfinex_btc_usd_5min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_5min")),
+    //"bitfinex_btc_usd_10min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_10min")),
+    //"bitfinex_btc_usd_15min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_15min")),
+    //"bitfinex_btc_usd_30min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_30min")),
     "bitfinex_btc_usd_1hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_1hour")),
     "bitfinex_btc_usd_2hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_2hour")),
     "bitfinex_btc_usd_6hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_6hour")),
     "bitfinex_btc_usd_12hour" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_12hour")),
     "bitfinex_btc_usd_day" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_day"))
   )
-
+  
   val tableRows = {
-    if (!addTickFromDb) {
-      tickDataPoint = {
-        val lengthString = tickTable.length.run
-        val lastRow = tickTable.filter(x => x.id === lengthString.toLong).take(1)
+    if (!resetGranularitys) {
+      val lastRowInSmallestGranularity = {
+        // SET THIS TO SMALLEST GRANULARITY TABLE
+        val smallestGranularityTable = tableMap.get("bitfinex_btc_usd_1hour").get
+        val length = smallestGranularityTable.length.run.toLong
+        val lastRow = smallestGranularityTable.filter(_.id === length).take(1)
         val value = lastRow.firstOption
         value.get
       }
+
+      val lastProcessedTimestamp = lastRowInSmallestGranularity.timestamp
+
+      tickDataPoint = {
+        val allProcessedRows = tickTable.filter(x => x.timestamp <= lastProcessedTimestamp)
+        val length = allProcessedRows.length.run.toLong
+        val lastProcessedRow = allProcessedRows.filter(_.id === length).take(1)
+        val value = lastProcessedRow.firstOption
+        value.get
+      }
+      println("Last processed tick data point was: TICK: id:" + tickDataPoint.id + ", sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
+
     }
     Map(
-      "bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
-      "bitfinex_btc_usd_2min" -> NextRow(120, tickDataPoint),
-      "bitfinex_btc_usd_5min" -> NextRow(300, tickDataPoint),
-      "bitfinex_btc_usd_10min" -> NextRow(600, tickDataPoint),
-      "bitfinex_btc_usd_15min" -> NextRow(900, tickDataPoint),
-      "bitfinex_btc_usd_30min" -> NextRow(1800, tickDataPoint),
+      //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
+      //"bitfinex_btc_usd_2min" -> NextRow(120, tickDataPoint),
+      //"bitfinex_btc_usd_5min" -> NextRow(300, tickDataPoint),
+      //"bitfinex_btc_usd_10min" -> NextRow(600, tickDataPoint),
+      //"bitfinex_btc_usd_15min" -> NextRow(900, tickDataPoint),
+      //"bitfinex_btc_usd_30min" -> NextRow(1800, tickDataPoint),
       "bitfinex_btc_usd_1hour" -> NextRow(3600, tickDataPoint),
       "bitfinex_btc_usd_2hour" -> NextRow(7200, tickDataPoint),
       "bitfinex_btc_usd_6hour" -> NextRow(21600, tickDataPoint),
@@ -59,7 +73,7 @@ class DBWriter(inSession: Session, addTickFromDb: Boolean) {
     )
   }
 
-  if (addTickFromDb) {
+  if (resetGranularitys) {
     println("Creating new data granularity-tables - Start")
     // drop all tables if exists and create new once.
     tableMap.foreach(x => {
@@ -74,10 +88,20 @@ class DBWriter(inSession: Session, addTickFromDb: Boolean) {
       granulateTick(tickDataPoint)
     }
   }
+  else {
+    val allNewRows = tickTable.filter(x => x.timestamp >= tickDataPoint.timestamp)
+    val allNewRowsList: List[TickDataPoint] = allNewRows.list
+    val allNewRowsIterator = allNewRowsList.iterator
+
+    while (allNewRowsIterator.hasNext) {
+      tickDataPoint = allNewRowsIterator.next()
+      granulateTick(tickDataPoint)
+    }
+  }
 
   def newTick(tickDataPoint: TickDataPoint) {
     //add the tick to the tick database
-    println("TICK: sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
+    println("TICK: id:" + tickDataPoint.id + ", sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
     tickTable += tickDataPoint
     granulateTick(tickDataPoint)
   }

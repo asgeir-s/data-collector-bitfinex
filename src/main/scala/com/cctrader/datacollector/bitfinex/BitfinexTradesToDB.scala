@@ -7,7 +7,6 @@ import org.json4s._
 import org.json4s.native.JsonMethods._
 
 import scala.slick.jdbc.{StaticQuery => Q}
-import scala.slick.lifted.TableQuery
 
 
 /**
@@ -19,38 +18,46 @@ class BitfinexTradesToDB(dbWriter: DBWriter) {
   var lastTimestamp = dbWriter.getEndTime
   println("BitfinexTradesToDB: startTimestamp:" + lastTimestamp)
 
-  val tickTable = TableQuery[TickTable]
+  var first = true
+  var bitcoinchartsURL: URL = _
+  var bufferedReader: BufferedReader = _
+  var stringData: String = _
+  var children: List[JsonAST.JValue] = _
+
   while (true) {
     try {
-      val bitcoinchartsURL = new URL("https://api.bitfinex.com/v1/trades/btcusd?timestamp=" + (lastTimestamp - 1))
-      val connection = bitcoinchartsURL.openConnection()
-      val bufferedReader: BufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream))
-      var line: String = null
-      val stringData = Stream.continually(bufferedReader.readLine()).takeWhile(_ != null).mkString("\n")
-      var lastID = 0L
+      bitcoinchartsURL = new URL("https://api.bitfinex.com/v1/trades/btcusd?timestamp=" + (lastTimestamp - 1))
+      bufferedReader = new BufferedReader(new InputStreamReader(bitcoinchartsURL.openConnection().getInputStream))
+      stringData = Stream.continually(bufferedReader.readLine()).takeWhile(_ != null).mkString("\n")
       bufferedReader.close()
-      val children = parse(stringData).children
+      children = parse(stringData).children
       children.reverse.foreach(x => {
-        val timestamp = x.children(0).values.toString.toInt // ikke: 12345
-        if (timestamp > lastTimestamp) {
-          val id = None
-          val sourceId = Some(x.children(1).values.toString.toLong)
-          val price = x.children.apply(2).values.toString.toDouble
-          val amount = x.children.apply(3).values.toString.toDouble
-          dbWriter.newTick(TickDataPoint(id, sourceId, timestamp, price, amount))
-          lastTimestamp = timestamp
+        if (x.children(0).values.toString.toInt > lastTimestamp) {
+          dbWriter.newTick(TickDataPoint(None, Some(x.children(1).values.toString.toLong), x.children(0).values.toString.toInt, x.children.apply(2).values.toString.toDouble, x.children.apply(3).values.toString.toDouble))
+          lastTimestamp = x.children(0).values.toString.toInt
+          if(first) {
+            dbWriter.isLive = true
+            first = false
+          }
         }
       })
-      bufferedReader.close()
     }
     catch {
-      case e: IOException => { e.printStackTrace(); e.toString() }
+      case e: IOException => {e.printStackTrace(); e.toString()}
+      case e: java.net.MalformedURLException => {e.printStackTrace(); e.toString()}
+      case e: Exception => {e.printStackTrace(); e.toString()}
       case _ => println("Another exception")
     }
-    dbWriter.isLive = true
-    println("BitfinexTradesToDB: lastTimestamp:" + lastTimestamp + ". Waiting for 15 sec.")
 
-    Thread.sleep(15000)
+    println("BitfinexTradesToDB: lastTimestamp:" + lastTimestamp + ". Waiting for 15 sec.")
+    try {
+      Thread.sleep(15000)
+    }
+    catch {
+      case e: java.lang.InterruptedException => {e.printStackTrace(); e.toString()}
+      case e: Exception => {e.printStackTrace(); e.toString()}
+      case _ => println("Another exception")
+    }
   }
 
 }

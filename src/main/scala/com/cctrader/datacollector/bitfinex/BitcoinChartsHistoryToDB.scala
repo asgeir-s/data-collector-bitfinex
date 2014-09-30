@@ -42,9 +42,8 @@ class BitcoinChartsHistoryToDB(download: Boolean, decompress: Boolean,
     println("Decompress Finished")
   }
 
-  val tickTable = TableQuery[TickTable]
-
   if (writeToDB) {
+    val tickTable = TableQuery[TickTable]
     // remove table if it exists
     if (makeTableMap.contains("bitfinex_btc_usd_tick"))
       tickTable.ddl.drop
@@ -54,22 +53,27 @@ class BitcoinChartsHistoryToDB(download: Boolean, decompress: Boolean,
     val filPath = Paths.get(decompressedHistoryFile).toAbsolutePath.toString
     sql"COPY bitfinex_btc_usd_tick(timestamp, price, amount) FROM '#$filPath' DELIMITER ',' CSV;".as[String].list
     println("Writing to database finish")
-  }
 
-  var startTime: Date = {
-    val firstRow = tickTable.filter(x => x.id === 1L).take(1)
-    val value = firstRow.firstOption map (x => x.date)
-    value.get
-  }
 
-  var endTime = {
-    val lengthString = tickTable.length.run
-    val lastRow = tickTable.filter(x => x.id === lengthString.toLong).take(1)
-    val value = lastRow.firstOption map (x => x.date)
-    value.get
-  }
+    var startTime: Date = {
+      val firstRow = tickTable.filter(x => x.id === 1L).take(1)
+      val value = firstRow.firstOption map (x => x.date)
+      value.get
+    }
 
-  println("BitcoinChartsHistoryToDB: startTimestamp:" + startTime.getTime / 1000 + ", endTimestamp:" + endTime.getTime / 1000)
+    var endTime = {
+      val lengthString = tickTable.length.run
+      val lastRow = tickTable.filter(x => x.id === lengthString.toLong).take(1)
+      val value = lastRow.firstOption map (x => x.date)
+      value.get
+    }
+    println("BitcoinChartsHistoryToDB: startTimestamp:" + startTime.getTime / 1000 + ", endTimestamp:" + endTime.getTime / 1000)
+
+  }
+  else {
+    println("BitcoinChartsHistoryToDB: Did not get any new dataPoints. writeToDB==false")
+
+  }
 
   def makeTableMap: Map[String, MTable] = {
     val tableList = MTable.getTables.list(session)
