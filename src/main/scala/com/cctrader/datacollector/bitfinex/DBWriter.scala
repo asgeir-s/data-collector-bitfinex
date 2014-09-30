@@ -15,8 +15,8 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
 
   var isLive = false
 
-  val list: List[TickDataPoint] = tickTable.list
-  val iterator = list.sortBy(_.id).iterator
+  val list: List[TickDataPoint] = tickTable.sortBy(_.id).list
+  val iterator = list.iterator
   var tickDataPoint = iterator.next()
 
   var minTimestamp: Int = 0
@@ -36,13 +36,15 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
   )
 
   def lastRow(table: TableQuery[InstrumentTable]): DataPoint = {
-    table.sortBy(_.id).list.last.copy()
+      val idOfMax = table.map(_.id).max
+      val firstOption = table.filter(_.id === idOfMax).firstOption
+      firstOption.get
   }
 
   def lastTickBefore(timestamp: Int) = {
-    val allProcessedTicks = tickTable.filter(x => x.timestamp <= timestamp).sortBy(_.id)
-    val lastProcessedTick = allProcessedTicks.list.last.copy()
-    lastProcessedTick
+    val idOfLastProcessedTick = tickTable.filter(x => x.timestamp <= timestamp).map(_.id).max
+    val lastProcessedTick = tickTable.filter(_.id === idOfLastProcessedTick).firstOption
+    lastProcessedTick.get
   }
 
   val tableRows = {
@@ -102,7 +104,8 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
     }
   }
   else {
-    val allNewRows = tickTable.filter(x => x.timestamp >= minTimestamp)
+    println("Creating new data granularity-tables - Start")
+    val allNewRows = tickTable.filter(x => x.timestamp >= minTimestamp).sortBy(_.id)
     val allNewRowsList: List[TickDataPoint] = allNewRows.list
     val allNewRowsIterator = allNewRowsList.iterator
 
@@ -139,7 +142,11 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
     })
   }
 
-  def getEndTime: Int = tickTable.sortBy(_.id).list.last.copy().timestamp
+  def getEndTime: Int = {
+    val idOfMax = tickTable.map(_.id).max
+    val firstOption = tickTable.filter(_.id === idOfMax).firstOption
+    firstOption.get.timestamp
+  }
 
 
   def javaNewTick(sourceId: Long, unixTimestamp: Int, price: Double, amount: Double) {

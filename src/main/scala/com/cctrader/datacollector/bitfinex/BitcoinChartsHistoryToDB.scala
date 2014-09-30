@@ -54,16 +54,18 @@ class BitcoinChartsHistoryToDB(download: Boolean, decompress: Boolean,
     sql"COPY bitfinex_btc_usd_tick(timestamp, price, amount) FROM '#$filPath' DELIMITER ',' CSV;".as[String].list
     println("Writing to database finish")
 
-
-    var startTime: Date = {
-      val list = tickTable.sortBy(_.id).list
-      list(0).date
+    val startTime: Date = {
+      val idOfMin = tickTable.map(_.id).min
+      val firstOption = tickTable.filter(_.id === idOfMin).firstOption
+      firstOption.get.date
     }
 
-    var endTime = {
-      val list = tickTable.sortBy(_.id).list
-      list.last.date
+    val endTime = {
+      val idOfMax = tickTable.map(_.id).max
+      val firstOption = tickTable.filter(_.id === idOfMax).firstOption
+      firstOption.get.date
     }
+
     println("BitcoinChartsHistoryToDB: startTimestamp:" + startTime.getTime / 1000 + ", endTimestamp:" + endTime.getTime / 1000)
 
   }

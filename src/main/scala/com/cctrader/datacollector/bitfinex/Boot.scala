@@ -25,7 +25,7 @@ object Boot extends App {
 
 
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - Start --------------------------")
-  new BitcoinChartsHistoryToDB(false, false, false, "", dbSession)
+  new BitcoinChartsHistoryToDB(false, false, false, "/Users/asgeir/Dropbox/Master/System/BitfinexCollector/download/bitfinexUSD1411991236758.csv", dbSession)
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - end ----------------------------")
 
   println("-------------------------- STEP2 - BfxDataHistoryToDB - Start --------------------------------")

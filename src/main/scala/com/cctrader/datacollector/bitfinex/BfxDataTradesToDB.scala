@@ -16,9 +16,14 @@ class BFXdataTradesToDB(sessionIn: Session) {
   implicit var session: Session = sessionIn
   val tickTable = TableQuery[TickTable]
 
-  var endTime: Int = tickTable.sortBy(_.id).list.last.copy().timestamp
-  println("endTime:" + endTime)
+  var endTime = {
+    val idOfMax = tickTable.map(_.id).max
+    val firstOption = tickTable.filter(_.id === idOfMax).firstOption
+    firstOption.get.timestamp
+  }
 
+  println("endTime:" + endTime)
+  println("Getting tick data from FTXdata - Start")
   val BfxDataURL = new URL("http://www.bfxdata.com/json/lastTradesBTCUSD.json")
   val connection = BfxDataURL.openConnection()
   val bufferedReader: BufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream))
@@ -33,6 +38,8 @@ class BFXdataTradesToDB(sessionIn: Session) {
       tickTable += tick
     }
   })
+  println("Getting tick data from FTXdata - Finished")
+
 
   def makeTableMap: Map[String, MTable] = {
     val tableList = MTable.getTables.list(session)
