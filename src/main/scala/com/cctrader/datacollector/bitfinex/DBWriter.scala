@@ -36,11 +36,8 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
   )
 
   def lastRow(table: TableQuery[InstrumentTable]): DataPoint = {
-    val length = table.length.run.toLong
-    val lastRow = table.filter(_.id === length).take(1)
-    val value = lastRow.firstOption
-    val lastValue = value.get
-    lastValue.copy()
+    val value = table.list.last.copy()
+    value
   }
 
   def lastTickBefore(timestamp: Int) = {
@@ -61,7 +58,6 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
 
       minTimestamp = Math.min(Math.min(lastTimestamp_1hour, lastTimestamp_2hour), Math.min(lastTimestamp_6hour, Math.min(lastTimestamp_day, lastTimestamp_12hour)))
 
-      println("minTimestamp:" + minTimestamp)
       println("Last processed tick data point was: TICK: id:" + tickDataPoint.id + ", sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
       Map(
         //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
