@@ -61,6 +61,7 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
 
       minTimestamp = Math.min(Math.min(lastTimestamp_1hour, lastTimestamp_2hour), Math.min(lastTimestamp_6hour, Math.min(lastTimestamp_day, lastTimestamp_12hour)))
 
+      println("minTimestamp:" + minTimestamp)
       println("Last processed tick data point was: TICK: id:" + tickDataPoint.id + ", sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
       Map(
         //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
