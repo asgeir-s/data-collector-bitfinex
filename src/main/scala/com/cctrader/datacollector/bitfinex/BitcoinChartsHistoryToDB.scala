@@ -56,16 +56,13 @@ class BitcoinChartsHistoryToDB(download: Boolean, decompress: Boolean,
 
 
     var startTime: Date = {
-      val firstRow = tickTable.filter(x => x.id === 1L).take(1)
-      val value = firstRow.firstOption map (x => x.date)
-      value.get
+      val list = tickTable.sortBy(_.id).list
+      list(0).date
     }
 
     var endTime = {
-      val lengthString = tickTable.length.run
-      val lastRow = tickTable.filter(x => x.id === lengthString.toLong).take(1)
-      val value = lastRow.firstOption map (x => x.date)
-      value.get
+      val list = tickTable.sortBy(_.id).list
+      list.last.date
     }
     println("BitcoinChartsHistoryToDB: startTimestamp:" + startTime.getTime / 1000 + ", endTimestamp:" + endTime.getTime / 1000)
 

@@ -16,12 +16,8 @@ class BFXdataTradesToDB(sessionIn: Session) {
   implicit var session: Session = sessionIn
   val tickTable = TableQuery[TickTable]
 
-  var endTime: Int = {
-      val lengthString = tickTable.length.run
-      val lastRow = tickTable.filter(x => x.id === lengthString.toLong).take(1)
-      val value = lastRow.firstOption map (x => x.timestamp)
-      value.get
-  }
+  var endTime: Int = tickTable.sortBy(_.id).list.last.copy().timestamp
+  println("endTime:" + endTime)
 
   val BfxDataURL = new URL("http://www.bfxdata.com/json/lastTradesBTCUSD.json")
   val connection = BfxDataURL.openConnection()

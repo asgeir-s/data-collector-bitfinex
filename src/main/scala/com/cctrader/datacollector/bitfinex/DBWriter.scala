@@ -16,7 +16,7 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
   var isLive = false
 
   val list: List[TickDataPoint] = tickTable.list
-  val iterator = list.iterator
+  val iterator = list.sortBy(_.id).iterator
   var tickDataPoint = iterator.next()
 
   var minTimestamp: Int = 0
@@ -36,16 +36,13 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
   )
 
   def lastRow(table: TableQuery[InstrumentTable]): DataPoint = {
-    val value = table.list.last.copy()
-    value
+    table.sortBy(_.id).list.last.copy()
   }
 
   def lastTickBefore(timestamp: Int) = {
-    val allProcessedRows = tickTable.filter(x => x.timestamp <= timestamp)
-    val length = allProcessedRows.length.run.toLong
-    val lastProcessedRow = allProcessedRows.filter(_.id === length).take(1)
-    val value = lastProcessedRow.firstOption
-    value.get
+    val allProcessedTicks = tickTable.filter(x => x.timestamp <= timestamp).sortBy(_.id)
+    val lastProcessedTick = allProcessedTicks.list.last.copy()
+    lastProcessedTick
   }
 
   val tableRows = {
@@ -58,7 +55,6 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
 
       minTimestamp = Math.min(Math.min(lastTimestamp_1hour, lastTimestamp_2hour), Math.min(lastTimestamp_6hour, Math.min(lastTimestamp_day, lastTimestamp_12hour)))
 
-      println("Last processed tick data point was: TICK: id:" + tickDataPoint.id + ", sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
       Map(
         //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
         //"bitfinex_btc_usd_2min" -> NextRow(120, tickDataPoint),
@@ -143,12 +139,8 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
     })
   }
 
-  def getEndTime: Int = {
-    val lengthString = tickTable.length.run
-    val lastRow = tickTable.filter(x => x.id === lengthString.toLong).take(1)
-    val value = lastRow.firstOption map (x => x.date)
-    (value.get.getTime / 1000).toInt
-  }
+  def getEndTime: Int = tickTable.sortBy(_.id).list.last.copy().timestamp
+
 
   def javaNewTick(sourceId: Long, unixTimestamp: Int, price: Double, amount: Double) {
     newTick(TickDataPoint(None, Some(sourceId), unixTimestamp, price, amount))
