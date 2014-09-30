@@ -39,9 +39,6 @@ object Boot extends App {
   println("-------------------------- STEP4 - BitfinexLive - Start --------------------------------------")
   implicit val system = ActorSystem("actor-system")
   val liveActor = system.actorOf(BitfinexTradesToDBActor.props(dbWriter))
-  //Use the system's dispatcher as ExecutionContext
-  import system.dispatcher
-  system.scheduler.schedule(15 seconds, 15 seconds, liveActor, "GET TICKS")
   println("-------------------------- STEP4 - BitfinexLive - end ----------------------------------------")
 
 }
