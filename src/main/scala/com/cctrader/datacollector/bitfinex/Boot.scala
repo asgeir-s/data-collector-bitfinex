@@ -37,8 +37,8 @@ object Boot extends App {
   println("-------------------------- STEP3 - DBWriter - Initialization done ----------------------------")
 
   println("-------------------------- STEP4 - BitfinexLive - Start --------------------------------------")
-  implicit val system = ActorSystem("actor-system")
-  val liveActor = system.actorOf(BitfinexTradesToDBActor.props(dbWriter))
+  implicit val system = ActorSystem("actor-system-bitfinex")
+  system.actorOf(LiveMonitorActor.props(dbWriter))
   println("-------------------------- STEP4 - BitfinexLive - end ----------------------------------------")
 
 }

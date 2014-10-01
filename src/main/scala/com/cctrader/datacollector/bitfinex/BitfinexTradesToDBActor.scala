@@ -2,6 +2,7 @@ package com.cctrader.datacollector.bitfinex
 
 import java.io._
 import java.net._
+import java.util.Date
 
 import akka.actor.{ActorSystem, Actor, Props}
 import org.json4s._
@@ -27,10 +28,6 @@ class BitfinexTradesToDBActor(dbWriter: DBWriter) extends Actor {
   var stringData: String = _
   var children: List[JsonAST.JValue] = _
 
-  implicit val system = ActorSystem("actor-system")
-  import system.dispatcher
-  context.system.scheduler.scheduleOnce(15 seconds, self, "GET TICKS")
-
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     println("Something went wrong. Will restart actor. This does not effect execution :)")
     super.preRestart(reason, message)
@@ -53,8 +50,8 @@ class BitfinexTradesToDBActor(dbWriter: DBWriter) extends Actor {
           }
         }
       })
-      println("BitfinexTradesToDB: lastTimestamp:" + lastTimestamp + ". Waiting for 15 sec.")
-      context.system.scheduler.scheduleOnce(15 seconds, self, "GET TICKS")
+      println("BitfinexTradesToDB: last tick:" + new Date(lastTimestamp.toLong*1000L) + ". Waiting for 15 sec.")
+      context.parent ! "ALIVE"
     }
   }
 }
