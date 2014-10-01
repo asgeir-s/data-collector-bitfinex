@@ -2,14 +2,14 @@ package com.cctrader.datacollector.bitfinex
 
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.meta.MTable
-import scala.slick.jdbc.{StaticQuery => Q}
+import scala.slick.jdbc.{StaticQuery => Q, JdbcBackend}
 
 /**
  * Writes ticks to the database and create (and write to the database) granularity's.
  */
-class DBWriter(inSession: Session, resetGranularitys: Boolean) {
+class DBWriter(inSession: Session, dbFactory: JdbcBackend.DatabaseDef,  resetGranularitys: Boolean) {
 
-  implicit val session = inSession
+  implicit var session = inSession
 
   val tickTable = TableQuery[TickTable]
 
@@ -20,6 +20,11 @@ class DBWriter(inSession: Session, resetGranularitys: Boolean) {
   var tickDataPoint = iterator.next()
 
   var minTimestamp: Int = 0
+
+  def resetDBConnection(): Unit = {
+    session.close()
+    session = dbFactory.createSession()
+  }
 
   val tableMap = Map(
     //"bitfinex_btc_usd_1min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_1min")),
