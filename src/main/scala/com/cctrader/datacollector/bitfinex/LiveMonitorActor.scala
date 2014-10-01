@@ -9,12 +9,12 @@ import scala.concurrent.duration._
  */
 class LiveMonitorActor(dbWriter: DBWriter) extends Actor {
 
-  val liveActor = context.actorOf(BitfinexTradesToDBActor.props(dbWriter), "liveActor")
+  var liveActor = context.actorOf(BitfinexTradesToDBActor.props(dbWriter))
 
   implicit val system = ActorSystem("actor-system-bitfinex")
   import system.dispatcher
 
-  context.system.scheduler.schedule(2 seconds, 15 seconds, liveActor, "GET TICKS")
+  var scaduale = context.system.scheduler.schedule(2 seconds, 15 seconds, liveActor, "GET TICKS")
   context.setReceiveTimeout(20 seconds)
 
   override def receive: Receive = {
@@ -22,7 +22,9 @@ class LiveMonitorActor(dbWriter: DBWriter) extends Actor {
     case ReceiveTimeout => {
       println("Timeout received: restarts BitfinexTradesToDBActor")
       context.system.stop(liveActor)
-      context.actorOf(BitfinexTradesToDBActor.props(dbWriter), "liveActor")
+      scaduale.cancel()
+      liveActor = context.actorOf(BitfinexTradesToDBActor.props(dbWriter))
+      scaduale = context.system.scheduler.schedule(2 seconds, 15 seconds, liveActor, "GET TICKS")
     }
   }
 }
