@@ -9,7 +9,7 @@ import scala.slick.jdbc.{StaticQuery => Q, JdbcBackend}
  */
 class DBWriter(dbFactory: JdbcBackend.DatabaseDef,  resetGranularitys: Boolean) {
 
-  implicit val session = dbFactory.createSession()
+  implicit var session = dbFactory.createSession()
 
   val tickTable = TableQuery[TickTable]
 
@@ -39,6 +39,11 @@ class DBWriter(dbFactory: JdbcBackend.DatabaseDef,  resetGranularitys: Boolean) 
       val idOfMax = table.map(_.id).max
       val firstOption = table.filter(_.id === idOfMax).firstOption
       firstOption.get
+  }
+
+  def resetDBConnection: Unit = {
+    session.close
+    session = dbFactory.createSession()
   }
 
   def lastTickBefore(timestamp: Int) = {
