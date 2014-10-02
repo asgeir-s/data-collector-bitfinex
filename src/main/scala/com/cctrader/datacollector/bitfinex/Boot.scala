@@ -26,15 +26,16 @@ object Boot extends App {
 
 
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - Start --------------------------")
-  new BitcoinChartsHistoryToDB(false, false, false, "/Users/asgeir/Dropbox/Master/System/BitfinexCollector/download/bitfinexUSD1411991236758.csv", dbSession)
+  new BitcoinChartsHistoryToDB(false, false, false, "", dbSession)
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - end ----------------------------")
 
   println("-------------------------- STEP2 - BfxDataHistoryToDB - Start --------------------------------")
   new BFXdataTradesToDB(dbSession)
+  dbSession.close()
   println("-------------------------- STEP2 - BfxDataHistoryToDB - end ----------------------------------")
 
   println("-------------------------- STEP3 - DBWriter - Start ------------------------------------------")
-  val dbWriter = new DBWriter(dbSession, databaseFactory, false)
+  val dbWriter = new DBWriter(databaseFactory, false)
   println("-------------------------- STEP3 - DBWriter - Initialization done ----------------------------")
 
   println("-------------------------- STEP4 - BitfinexLive - Start --------------------------------------")

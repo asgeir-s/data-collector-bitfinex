@@ -19,7 +19,6 @@ import scala.concurrent.duration._
  */
 class BitfinexTradesToDBActor(dbWriter: DBWriter) extends Actor {
 
-  dbWriter.resetDBConnection
   var lastTimestamp = dbWriter.getEndTime
   println("BitfinexTradesToDB: startTimestamp:" + lastTimestamp)
 

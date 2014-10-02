@@ -13,7 +13,7 @@ import scala.slick.jdbc.{StaticQuery => Q}
  */
 class BFXdataTradesToDB(sessionIn: Session) {
 
-  implicit var session: Session = sessionIn
+  implicit val session: Session = sessionIn
   val tickTable = TableQuery[TickTable]
 
   var endTime = {

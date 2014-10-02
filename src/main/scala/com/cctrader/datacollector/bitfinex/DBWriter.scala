@@ -7,9 +7,9 @@ import scala.slick.jdbc.{StaticQuery => Q, JdbcBackend}
 /**
  * Writes ticks to the database and create (and write to the database) granularity's.
  */
-class DBWriter(inSession: Session, dbFactory: JdbcBackend.DatabaseDef,  resetGranularitys: Boolean) {
+class DBWriter(dbFactory: JdbcBackend.DatabaseDef,  resetGranularitys: Boolean) {
 
-  implicit var session = inSession
+  implicit val session = dbFactory.createSession()
 
   val tickTable = TableQuery[TickTable]
 
@@ -20,11 +20,6 @@ class DBWriter(inSession: Session, dbFactory: JdbcBackend.DatabaseDef,  resetGra
   var tickDataPoint = iterator.next()
 
   var minTimestamp: Int = 0
-
-  def resetDBConnection(): Unit = {
-    session.close()
-    session = dbFactory.createSession()
-  }
 
   val tableMap = Map(
     //"bitfinex_btc_usd_1min" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_1min")),
