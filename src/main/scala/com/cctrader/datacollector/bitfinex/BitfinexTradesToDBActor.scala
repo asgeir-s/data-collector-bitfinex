@@ -41,6 +41,7 @@ class BitfinexTradesToDBActor extends Actor {
   var stringData: String = _
   var children: List[JsonAST.JValue] = _
 
+  context.parent ! "ALIVE"
   println("BitfinexTradesToDBActor: Initialization finished. Waiting for \"GET TICKS\"")
 
   override def receive: Receive = {
