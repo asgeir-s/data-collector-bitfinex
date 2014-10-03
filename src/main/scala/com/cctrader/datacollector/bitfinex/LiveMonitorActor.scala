@@ -17,7 +17,7 @@ class LiveMonitorActor extends Actor {
   var liveActor = context.actorOf(Props[BitfinexTradesToDBActor])
   var schedule = context.system.scheduler.schedule(2 seconds, 15 seconds, liveActor, "GET TICKS")
 
-  context.setReceiveTimeout(60 seconds)
+  context.setReceiveTimeout(100 seconds)
 
   override def receive: Receive = {
     case "ALIVE" => {}
