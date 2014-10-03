@@ -33,13 +33,8 @@ object Boot extends App {
   dbSession.close()
   println("-------------------------- STEP2 - BfxDataHistoryToDB - end ----------------------------------")
 
-  //println("-------------------------- STEP3 - DBWriter - Start ------------------------------------------")
-  //val dbWriter = new DBWriter(databaseFactory, false)
-  //println("-------------------------- STEP3 - DBWriter - Initialization done ----------------------------")
-
-  println("-------------------------- STEP4 - BitfinexLive - Start --------------------------------------")
+  println("-------------------------- STEP3 - BitfinexLive - Start --------------------------------------")
   implicit val system = ActorSystem("actor-system-bitfinex")
   val liveMonitorActor = system.actorOf(Props[LiveMonitorActor])
-  println("-------------------------- STEP4 - BitfinexLive - end ----------------------------------------")
 
 }

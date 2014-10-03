@@ -4,34 +4,20 @@ import java.io._
 import java.net._
 import java.util.Date
 
-import akka.actor.Actor
-import com.typesafe.config.ConfigFactory
+import akka.actor.{Actor, Props}
 import org.json4s._
 import org.json4s.native.JsonMethods._
 
-import scala.slick.jdbc.JdbcBackend._
-import scala.slick.jdbc.{JdbcBackend, StaticQuery => Q}
+import scala.slick.jdbc.{StaticQuery => Q}
 
 
 /**
  * Get the newest trades from Bitstamp.
  * Used to breach the gap between the 15 min delayed trades received from Bitcoincharts and new live trades.
  */
-class BitfinexTradesToDBActor extends Actor {
+class BitfinexTradesToDBActor(dbWriter: DBWriter) extends Actor {
 
   println("BitfinexTradesToDBActor: start")
-  context.parent ! "ALIVE"
-  val config = ConfigFactory.load()
-
-  val databaseFactory: JdbcBackend.DatabaseDef = Database.forURL(
-    url = "jdbc:postgresql://" + config.getString("postgres.host") + ":" + config.getString("postgres.port") + "/" + config
-      .getString("postgres.dbname"),
-    driver = config.getString("postgres.driver"),
-    user = config.getString("postgres.user"),
-    password = config.getString("postgres.password"))
-
-  println("BitfinexTradesToDBActor: Create new DBWriter")
-  val dbWriter = new DBWriter(databaseFactory, false)
   var lastTimestamp = dbWriter.getEndTime
   println("BitfinexTradesToDB: startTimestamp:" + lastTimestamp)
 
@@ -67,7 +53,17 @@ class BitfinexTradesToDBActor extends Actor {
   }
 
   override def postStop: Unit = {
-    println("BitfinexTradesToDBActor: Something went wrong. BitfinexTradesToDB will restart. This does not effect execution :)")
-    dbWriter.closeDBConnection
+    println("BitfinexTradesToDBActor: postStop")
   }
+
+  override def preStart: Unit = {
+    println("BitfinexTradesToDBActor: preStart")
+    dbWriter.resetDBConnection
+  }
+
+}
+
+object BitfinexTradesToDBActor {
+  def props(dbWriter: DBWriter): Props =
+    Props(new BitfinexTradesToDBActor(dbWriter))
 }

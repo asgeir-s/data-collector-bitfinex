@@ -9,16 +9,10 @@ import scala.slick.jdbc.{JdbcBackend, StaticQuery => Q}
  */
 class DBWriter(dbFactory: JdbcBackend.DatabaseDef, resetGranularitys: Boolean) {
 
-  implicit val session = dbFactory.createSession()
+  implicit var session = dbFactory.createSession()
 
   val tickTable = TableQuery[TickTable]
-
   var isLive = false
-
-  val list: List[TickDataPoint] = tickTable.sortBy(_.id).list
-  val iterator = list.iterator
-  var tickDataPoint = iterator.next()
-
   var minTimestamp: Int = 0
 
   val tableMap = Map(
@@ -35,25 +29,24 @@ class DBWriter(dbFactory: JdbcBackend.DatabaseDef, resetGranularitys: Boolean) {
     "bitfinex_btc_usd_day" -> TableQuery[InstrumentTable]((tag: Tag) => new InstrumentTable(tag, "bitfinex_btc_usd_day"))
   )
 
-  def lastRow(table: TableQuery[InstrumentTable]): DataPoint = {
-    val idOfMax = table.map(_.id).max
-    val firstOption = table.filter(_.id === idOfMax).firstOption
-    firstOption.get
-  }
-
-  def closeDBConnection {
-    session.close
-    println("DBWriter: dbCOnnection closed")
-  }
-
-  def lastTickBefore(timestamp: Int) = {
-    val idOfLastProcessedTick = tickTable.filter(x => x.timestamp <= timestamp).map(_.id).max
-    val lastProcessedTick = tickTable.filter(_.id === idOfLastProcessedTick).firstOption
-    lastProcessedTick.get
-  }
-
   val tableRows = {
-    if (!resetGranularitys) {
+    if (resetGranularitys) {
+      val firstTickDataPoint = tickTable.filter(_.id === 1L).firstOption.get
+      Map(
+        //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
+        //"bitfinex_btc_usd_2min" -> NextRow(120, tickDataPoint),
+        //"bitfinex_btc_usd_5min" -> NextRow(300, tickDataPoint),
+        //"bitfinex_btc_usd_10min" -> NextRow(600, tickDataPoint),
+        //"bitfinex_btc_usd_15min" -> NextRow(900, tickDataPoint),
+        //"bitfinex_btc_usd_30min" -> NextRow(1800, tickDataPoint),
+        "bitfinex_btc_usd_1hour" -> NextRow(3600, firstTickDataPoint),
+        "bitfinex_btc_usd_2hour" -> NextRow(7200, firstTickDataPoint),
+        "bitfinex_btc_usd_6hour" -> NextRow(21600, firstTickDataPoint),
+        "bitfinex_btc_usd_12hour" -> NextRow(43200, firstTickDataPoint),
+        "bitfinex_btc_usd_day" -> NextRow(86400, firstTickDataPoint)
+      )
+    }
+    else {
       val lastTimestamp_1hour = lastRow(tableMap.get("bitfinex_btc_usd_1hour").get).timestamp
       val lastTimestamp_2hour = lastRow(tableMap.get("bitfinex_btc_usd_2hour").get).timestamp
       val lastTimestamp_6hour = lastRow(tableMap.get("bitfinex_btc_usd_6hour").get).timestamp
@@ -76,24 +69,11 @@ class DBWriter(dbFactory: JdbcBackend.DatabaseDef, resetGranularitys: Boolean) {
         "bitfinex_btc_usd_day" -> NextRow(86400, lastTickBefore(lastTimestamp_day))
       )
     }
-    else {
-      Map(
-        //"bitfinex_btc_usd_1min" -> NextRow(60, tickDataPoint),
-        //"bitfinex_btc_usd_2min" -> NextRow(120, tickDataPoint),
-        //"bitfinex_btc_usd_5min" -> NextRow(300, tickDataPoint),
-        //"bitfinex_btc_usd_10min" -> NextRow(600, tickDataPoint),
-        //"bitfinex_btc_usd_15min" -> NextRow(900, tickDataPoint),
-        //"bitfinex_btc_usd_30min" -> NextRow(1800, tickDataPoint),
-        "bitfinex_btc_usd_1hour" -> NextRow(3600, tickDataPoint),
-        "bitfinex_btc_usd_2hour" -> NextRow(7200, tickDataPoint),
-        "bitfinex_btc_usd_6hour" -> NextRow(21600, tickDataPoint),
-        "bitfinex_btc_usd_12hour" -> NextRow(43200, tickDataPoint),
-        "bitfinex_btc_usd_day" -> NextRow(86400, tickDataPoint)
-      )
-    }
   }
 
   if (resetGranularitys) {
+    val list: List[TickDataPoint] = tickTable.list
+    val iterator = list.iterator
     println("Creating new data granularity-tables - Start")
     // drop all tables if exists and create new once.
     tableMap.foreach(x => {
@@ -104,20 +84,36 @@ class DBWriter(dbFactory: JdbcBackend.DatabaseDef, resetGranularitys: Boolean) {
     })
     //add all ticks
     while (iterator.hasNext) {
-      tickDataPoint = iterator.next()
-      granulateTick(tickDataPoint)
+      granulateTick(iterator.next())
     }
   }
   else {
-    println("Creating new data granularity-tables - Start")
+    println("Continuing old granularity-tables - Start")
     val allNewRows = tickTable.filter(x => x.timestamp >= minTimestamp).sortBy(_.id)
     val allNewRowsList: List[TickDataPoint] = allNewRows.list
     val allNewRowsIterator = allNewRowsList.iterator
 
     while (allNewRowsIterator.hasNext) {
-      tickDataPoint = allNewRowsIterator.next()
-      granulateTick(tickDataPoint)
+      granulateTick(allNewRowsIterator.next())
     }
+  }
+
+  def lastRow(table: TableQuery[InstrumentTable]): DataPoint = {
+    val idOfMax = table.map(_.id).max
+    val firstOption = table.filter(_.id === idOfMax).firstOption
+    firstOption.get
+  }
+
+  def resetDBConnection {
+    session.close
+    session = dbFactory.createSession()
+    println("DBWriter: resetDBConnection")
+  }
+
+  def lastTickBefore(timestamp: Int) = {
+    val idOfLastProcessedTick = tickTable.filter(x => x.timestamp <= timestamp).map(_.id).max
+    val lastProcessedTick = tickTable.filter(_.id === idOfLastProcessedTick).firstOption
+    lastProcessedTick.get
   }
 
   def newTick(tickDataPoint: TickDataPoint) {
