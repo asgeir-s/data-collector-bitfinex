@@ -1,35 +1,42 @@
 package com.cctrader.datacollector.bitfinex
 
-import akka.actor.{ActorSystem, ReceiveTimeout, Props, Actor}
-import akka.actor.Actor.Receive
+import akka.actor._
+
 import scala.concurrent.duration._
 
 /**
  *
  */
-class LiveMonitorActor(dbWriter: DBWriter) extends Actor {
+class LiveMonitorActor extends Actor {
 
-  var liveActor = context.actorOf(BitfinexTradesToDBActor.props(dbWriter))
-
+  println("LiveMonitorActor: start")
   implicit val system = ActorSystem("actor-system-bitfinex")
+
   import system.dispatcher
 
-  var scaduale = context.system.scheduler.schedule(2 seconds, 15 seconds, liveActor, "GET TICKS")
+  var liveActor = context.actorOf(Props[BitfinexTradesToDBActor])
+  var schedule = context.system.scheduler.schedule(2 seconds, 15 seconds, liveActor, "GET TICKS")
+
   context.setReceiveTimeout(20 seconds)
 
   override def receive: Receive = {
     case "ALIVE" => {}
     case ReceiveTimeout => {
-      println("Timeout received: restarts BitfinexTradesToDBActor")
-      context.system.stop(liveActor)
-      scaduale.cancel()
-      liveActor = context.actorOf(BitfinexTradesToDBActor.props(dbWriter))
-      scaduale = context.system.scheduler.schedule(2 seconds, 15 seconds, liveActor, "GET TICKS")
+      println("LiveMonitorActor: Receive Timeout: restarts BitfinexTradesToDBActor")
+      liveActor ! PoisonPill
+      schedule.cancel()
+      context.system.scheduler.scheduleOnce(15 seconds, self, "SET NEW LIVEACTOR")
+    }
+    case "SET NEW LIVEACTOR" => {
+      liveActor = context.actorOf(Props[BitfinexTradesToDBActor])
+      schedule = context.system.scheduler.schedule(2 seconds, 15 seconds, liveActor, "GET TICKS")
     }
   }
-}
 
-object LiveMonitorActor {
-  def props(dbWriter: DBWriter): Props =
-    Props(new LiveMonitorActor(dbWriter))
+  override def postStop: Unit = {
+    println("LiveMonitorActor: postStop")
+    schedule.cancel()
+    liveActor ! PoisonPill
+  }
+
 }

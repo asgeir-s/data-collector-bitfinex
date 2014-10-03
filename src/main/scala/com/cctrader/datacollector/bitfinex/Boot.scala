@@ -1,10 +1,9 @@
 package com.cctrader.datacollector.bitfinex
 
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
-import scala.concurrent.duration._
-import scala.slick.jdbc.JdbcBackend
 
+import scala.slick.jdbc.JdbcBackend
 import scala.slick.jdbc.JdbcBackend._
 
 /**
@@ -15,7 +14,7 @@ object Boot extends App {
 
   val config = ConfigFactory.load()
 
-  val databaseFactory:  JdbcBackend.DatabaseDef = Database.forURL(
+  val databaseFactory: JdbcBackend.DatabaseDef = Database.forURL(
     url = "jdbc:postgresql://" + config.getString("postgres.host") + ":" + config.getString("postgres.port") + "/" + config
       .getString("postgres.dbname"),
     driver = config.getString("postgres.driver"),
@@ -34,13 +33,13 @@ object Boot extends App {
   dbSession.close()
   println("-------------------------- STEP2 - BfxDataHistoryToDB - end ----------------------------------")
 
-  println("-------------------------- STEP3 - DBWriter - Start ------------------------------------------")
-  val dbWriter = new DBWriter(databaseFactory, false)
-  println("-------------------------- STEP3 - DBWriter - Initialization done ----------------------------")
+  //println("-------------------------- STEP3 - DBWriter - Start ------------------------------------------")
+  //val dbWriter = new DBWriter(databaseFactory, false)
+  //println("-------------------------- STEP3 - DBWriter - Initialization done ----------------------------")
 
   println("-------------------------- STEP4 - BitfinexLive - Start --------------------------------------")
   implicit val system = ActorSystem("actor-system-bitfinex")
-  system.actorOf(LiveMonitorActor.props(dbWriter))
+  val liveMonitorActor = system.actorOf(Props[LiveMonitorActor])
   println("-------------------------- STEP4 - BitfinexLive - end ----------------------------------------")
 
 }

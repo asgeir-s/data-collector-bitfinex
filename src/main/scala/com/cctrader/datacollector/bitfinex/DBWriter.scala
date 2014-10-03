@@ -2,14 +2,14 @@ package com.cctrader.datacollector.bitfinex
 
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.meta.MTable
-import scala.slick.jdbc.{StaticQuery => Q, JdbcBackend}
+import scala.slick.jdbc.{JdbcBackend, StaticQuery => Q}
 
 /**
  * Writes ticks to the database and create (and write to the database) granularity's.
  */
-class DBWriter(dbFactory: JdbcBackend.DatabaseDef,  resetGranularitys: Boolean) {
+class DBWriter(dbFactory: JdbcBackend.DatabaseDef, resetGranularitys: Boolean) {
 
-  implicit var session = dbFactory.createSession()
+  implicit val session = dbFactory.createSession()
 
   val tickTable = TableQuery[TickTable]
 
@@ -36,14 +36,14 @@ class DBWriter(dbFactory: JdbcBackend.DatabaseDef,  resetGranularitys: Boolean) 
   )
 
   def lastRow(table: TableQuery[InstrumentTable]): DataPoint = {
-      val idOfMax = table.map(_.id).max
-      val firstOption = table.filter(_.id === idOfMax).firstOption
-      firstOption.get
+    val idOfMax = table.map(_.id).max
+    val firstOption = table.filter(_.id === idOfMax).firstOption
+    firstOption.get
   }
 
-  def resetDBConnection: Unit = {
+  def closeDBConnection {
     session.close
-    session = dbFactory.createSession()
+    println("DBWriter: dbCOnnection closed")
   }
 
   def lastTickBefore(timestamp: Int) = {
@@ -132,7 +132,7 @@ class DBWriter(dbFactory: JdbcBackend.DatabaseDef,  resetGranularitys: Boolean) 
       val granularity = x._1
       val table = x._2
       val row = tableRows(granularity)
-      if(row.lastTimestamp <= tickDataPoint.timestamp) {
+      if (row.lastTimestamp <= tickDataPoint.timestamp) {
         while (row.endTimestamp < tickDataPoint.timestamp) {
           table += row.thisRow
           if (isLive) {

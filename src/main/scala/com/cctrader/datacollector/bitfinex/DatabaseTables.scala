@@ -24,7 +24,7 @@ class TickTable(tag: Tag) extends Table[TickDataPoint](tag, "bitfinex_btc_usd_ti
   def * = (id, sourceId, timestamp, price, amount) <>(TickDataPoint.tupled, TickDataPoint.unapply)
 }
 
-class InstrumentTable(tag: Tag, tableName: String) extends Table[DataPoint](tag, tableName){
+class InstrumentTable(tag: Tag, tableName: String) extends Table[DataPoint](tag, tableName) {
   def id = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
 
   def sourceId = column[Option[Long]]("sourceId")

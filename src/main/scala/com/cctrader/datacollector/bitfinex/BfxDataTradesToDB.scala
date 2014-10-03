@@ -32,7 +32,7 @@ class BFXdataTradesToDB(sessionIn: Session) {
   bufferedReader.close()
   val stringArray = str.split(",\\[")
   stringArray.foreach(x => {
-    val pointData = x.substring(x.lastIndexOf('[')+1, x.indexOf(']')).split(",")
+    val pointData = x.substring(x.lastIndexOf('[') + 1, x.indexOf(']')).split(",")
     val tick = TickDataPoint(None, None, pointData(0).substring(0, pointData(0).length - 3).toInt, pointData(1).toDouble, 1)
     if (tick.timestamp > endTime) {
       tickTable += tick
