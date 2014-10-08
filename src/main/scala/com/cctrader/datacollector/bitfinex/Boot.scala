@@ -25,11 +25,11 @@ object Boot extends App {
 
 
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - Start --------------------------")
-  new BitcoinChartsHistoryToDB(false, false, false, "", dbSession)
+  //new BitcoinChartsHistoryToDB(false, false, false, "", dbSession)
   println("-------------------------- STEP1 - bitcoinChartsHistoryToDB - end ----------------------------")
 
   println("-------------------------- STEP2 - BfxDataHistoryToDB - Start --------------------------------")
-  new BFXdataTradesToDB(dbSession)
+  //new BFXdataTradesToDB(dbSession)
   dbSession.close()
   println("-------------------------- STEP2 - BfxDataHistoryToDB - end ----------------------------------")
 

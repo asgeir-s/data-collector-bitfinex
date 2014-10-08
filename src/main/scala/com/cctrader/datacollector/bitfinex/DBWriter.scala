@@ -118,7 +118,7 @@ class DBWriter(dbFactory: JdbcBackend.DatabaseDef, resetGranularitys: Boolean) {
 
   def newTick(tickDataPoint: TickDataPoint) {
     //add the tick to the tick database
-    println("TICK: id:" + tickDataPoint.id + ", sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
+    println("new TICK: id:" + tickDataPoint.id + ", sourceId:" + tickDataPoint.sourceId + ", unixTimestamp:" + tickDataPoint.timestamp + ", price:" + tickDataPoint.price + ", amount" + tickDataPoint.amount)
     tickTable += tickDataPoint
     granulateTick(tickDataPoint)
   }
@@ -147,6 +147,12 @@ class DBWriter(dbFactory: JdbcBackend.DatabaseDef, resetGranularitys: Boolean) {
     val idOfMax = tickTable.map(_.id).max
     val firstOption = tickTable.filter(_.id === idOfMax).firstOption
     firstOption.get.timestamp
+  }
+
+  def getSourceId: Long = {
+    val idOfMax = tickTable.map(_.id).max
+    val firstOption = tickTable.filter(_.id === idOfMax).firstOption
+    firstOption.get.sourceId.get
   }
 
 
